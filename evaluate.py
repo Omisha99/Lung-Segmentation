@@ -2,9 +2,9 @@ import argparse
 import torch
 from torch.utils.data import DataLoader
 
-from src.dataset import LungSegmentationDataset
-from src.models import get_model
-from src.utils import diceScore, iouScore
+from dataset import LungSegmentationDataset
+from models import get_model
+from utils import diceScore, iouScore
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

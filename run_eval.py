@@ -1,5 +1,5 @@
 import pandas as pd
-from src.evaluate import evaluate_model
+from evaluate import evaluate_model
 
 experiments = [
     ("U-Net", "SHCXR", "SHCXR", "unet", "best_unet_shcxr.pth", "data/shcxr/images", "data/shcxr/masks"),

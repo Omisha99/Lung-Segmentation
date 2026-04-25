@@ -6,8 +6,8 @@ import torch
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
-from src.dataset import LungSegmentationDataset
-from src.models import get_model
+from dataset import LungSegmentationDataset
+from models import get_model
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

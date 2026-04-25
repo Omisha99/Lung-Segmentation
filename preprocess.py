@@ -79,20 +79,20 @@ def preprocess_dataset(
 def preprocess_all():
     preprocess_dataset(
         dataset_name="JSRT",
-        raw_image_dir="../raw_data/jsrt/images",
-        raw_mask_dir="../raw_data/jsrt/masks",
-        out_image_dir="../data/jsrt/images",
-        out_mask_dir="../data/jsrt/masks",
+        raw_image_dir="raw_data/jsrt/images",
+        raw_mask_dir="raw_data/jsrt/masks",
+        out_image_dir="data/jsrt/images",
+        out_mask_dir="data/jsrt/masks",
         img_size=IMG_SIZE,
         mask_threshold=10
     )
 
     preprocess_dataset(
         dataset_name="SHCXR",
-        raw_image_dir="../raw_data/shcxr/images",
-        raw_mask_dir="../raw_data/shcxr/masks",
-        out_image_dir="../data/shcxr/images",
-        out_mask_dir="../data/shcxr/masks",
+        raw_image_dir="raw_data/shcxr/images",
+        raw_mask_dir="raw_data/shcxr/masks",
+        out_image_dir="data/shcxr/images",
+        out_mask_dir="data/shcxr/masks",
         img_size=IMG_SIZE,
         mask_threshold=10
     )

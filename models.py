@@ -1,5 +1,5 @@
-from src.unet import UNet
-from src.resunet import ResUNet
+from unet import UNet
+from resunet import ResUNet
 
 def get_model(model_name):
     """
