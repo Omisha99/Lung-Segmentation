@@ -1,0 +1,12 @@
+kaggle==2.0.0
+kagglesdk==0.1.16
+matplotlib==3.10.8
+numpy==2.4.2
+pandas==3.0.0
+pillow==12.1.0
+scikit-image==0.26.0
+scikit-learn==1.8.0
+scipy==1.17.1
+torch==2.10.0+cu126
+torchvision==0.25.0+cu126
+tqdm==4.67.3
