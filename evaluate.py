@@ -1,10 +1,13 @@
 import argparse
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.data import Subset
 
 from dataset import LungSegmentationDataset
 from models import get_model
 from utils import diceScore, iouScore
+
+import json
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -14,13 +17,25 @@ def evaluate_model(
         model_path,
         model_name = "unet",
         batch_size = 8,
-        img_size = 256
+        img_size = 256,
+        split_path=None,
+        split_name="val"
         ):
 
     dataset = LungSegmentationDataset(
         img_dir=img_dir, 
         mask_dir=mask_dir, 
         img_size=img_size)
+    
+    if split_path is not None:
+        with open(split_path, "r") as f:
+            split_data = json.load(f)
+
+        indices = split_data[f"{split_name}_indices"]
+        dataset = Subset(dataset, indices)
+
+        print(f"Using {split_name} split from {split_path}")
+        print(f"Number of samples in split: {len(dataset)}")
     
     loader = DataLoader(
         dataset, 
@@ -68,6 +83,8 @@ def parse_args():
     parser.add_argument("--mask_dir", required=True)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--image_size", type=int, default=256)
+    parser.add_argument("--split_path", default=None)
+    parser.add_argument("--split_name", default="val", choices=["train", "val"])
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -79,5 +96,7 @@ if __name__ == "__main__":
         model_path=args.model_path,
         model_name=args.model,
         batch_size=args.batch_size,
-        img_size=args.image_size
+        img_size=args.image_size,
+        split_path=args.split_path,
+        split_name=args.split_name
     )

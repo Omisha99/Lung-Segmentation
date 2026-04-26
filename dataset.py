@@ -3,12 +3,14 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
+import random
 
 class LungSegmentationDataset(Dataset):
-    def __init__(self, img_dir, mask_dir, img_size=256):
+    def __init__(self, img_dir, mask_dir, img_size=256, augment=False):
         self.img_dir = img_dir
         self.mask_dir = mask_dir
         self.img_size = img_size
+        self.augment = augment
         
         self.images = sorted([
             f for f in os.listdir(img_dir)
@@ -36,6 +38,17 @@ class LungSegmentationDataset(Dataset):
 
         image = image.resize((self.img_size, self.img_size), Image.BILINEAR)
         mask = mask.resize((self.img_size, self.img_size), Image.NEAREST)
+
+        if self.augment:
+            if random.random() < 0.5:
+                image = TF.hflip(image)
+                mask = TF.hflip(mask)
+
+            if random.random() < 0.3:
+                angle = random.uniform(-10, 10)
+                image = TF.rotate(image, angle, interpolation=TF.InterpolationMode.BILINEAR)
+                mask = TF.rotate(mask, angle, interpolation=TF.InterpolationMode.NEAREST)
+
 
         image = TF.to_tensor(image)
         mask = TF.to_tensor(mask)

@@ -1,10 +1,13 @@
 import argparse
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, Subset
 
 from dataset import LungSegmentationDataset
 from models import get_model
 from utils import diceScore, iouScore, DiceBCELoss
+
+import pandas as pd
+import json
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -16,7 +19,7 @@ def train(
         img_dir,
         mask_dir,
         model_name = "unet",
-        dataset_name = "SHCXR",
+        dataset_name = "shcxr",
         epochs = 25,
         batch_size = 8,
         lr = 1e-4,
@@ -27,20 +30,40 @@ def train(
     print(f"Using device: {DEVICE}")
     print(f"Training {model_name} on {dataset_name}")
 
-    dataset = LungSegmentationDataset(
+    full_dataset = LungSegmentationDataset(
         img_dir=img_dir, 
         mask_dir=mask_dir, 
-        img_size=img_size)
+        img_size=img_size,
+        augment=False
+    )
     
-    val_size = int(val_split * len(dataset))
-    train_size = len(dataset) - val_size
+    val_size = int(val_split * len(full_dataset))
+    train_size = len(full_dataset) - val_size
 
     generator = torch.Generator().manual_seed(seed)
     train_set, val_set = random_split(
-        dataset, 
+        full_dataset, 
         [train_size, val_size], 
         generator=generator
     )
+
+    split_path = f"split_{model_name}_{dataset_name}.json"
+
+    split_data = {
+        "train_indices": train_set.indices,
+        "val_indices": val_set.indices
+    }
+
+    with open(split_path, "w") as f:
+        json.dump(split_data, f)
+
+    print(f"Saved split indices to {split_path}")
+
+    train_dataset = LungSegmentationDataset(img_dir, mask_dir, img_size, augment=True)
+    val_dataset = LungSegmentationDataset(img_dir, mask_dir, img_size, augment=False)
+
+    train_set = Subset(train_dataset, train_set.indices)
+    val_set = Subset(val_dataset, val_set.indices)
 
     train_loader = DataLoader(
         train_set, 
@@ -59,14 +82,23 @@ def train(
     )
 
     model = get_model(model_name).to(DEVICE)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     criterion = DiceBCELoss()
 
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="max",
+        factor=0.5,
+        patience=3
+    )
+    
     use_amp = DEVICE == "cuda"
     scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
 
     best_dice = 0.0
     save_path = f"best_{model_name}_{dataset_name}.pth"
+
+    history = []
 
     for epoch in range(epochs):
         model.train()
@@ -106,18 +138,33 @@ def train(
         avg_val_dice = val_dice / len(val_loader)
         avg_val_iou = val_iou / len(val_loader)
 
+        history.append({
+            "epoch": epoch + 1,
+            "train_loss": avg_train_loss,
+            "val_dice": avg_val_dice,
+            "val_iou": avg_val_iou,
+        })
+
         print(
             f"Epoch [{epoch+1}/{epochs}] - "
             f"Loss: {avg_train_loss:.4f} - "
             f"Val Dice: {avg_val_dice:.4f} - "
             f"Val IoU: {avg_val_iou:.4f}"
         )
+        
+        scheduler.step(avg_val_dice)
 
         if avg_val_dice > best_dice:
             best_dice = avg_val_dice
             torch.save(model.state_dict(), save_path)
     
+    history_df = pd.DataFrame(history)
+    history_path = f"history_{model_name}_{dataset_name}.csv"
+    history_df.to_csv(history_path, index=False)
+
+    print(f"Training history saved to {history_path}")
     print(f"Best model saved to {save_path} with Dice Score: {best_dice:.4f}")
+
     return save_path
 
 def parse_args():
